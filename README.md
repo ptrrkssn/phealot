@@ -41,9 +41,9 @@ and MacOS automounters as far as I know.
 
 6. Populate a DNS zone with records in one of the three formats above.
 
-### DNS Records:
+### DNS record examples:
     $ORIGIN filsys.hesiod.my.zone.com.
-    user1   IN    TXT    "NFS /staff/user1 server.my.zone.com - /home/user"
+    user1   IN    TXT    "NFS /staff/user1 server.my.zone.com - /home/user1"
     
     $ORIGIN pkg.automount.hesiod.my.zone.com.
     matlab  IN   TXT     "type:=nfs;rhost:=server.my.zone.com;rfs:=/linux/matlab"
