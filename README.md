@@ -24,7 +24,7 @@ and MacOS automounters as far as I know.
 
 ## Usage:
 
-1. Edit $zone_base below for your Hesiod/DNS automounter base zone.
+1. Edit $zone_base in the script for your Hesiod/DNS automounter base zone.
 2. Put the script somewhere (/sbin, /usr/libexec?).3
 3. Create a directory (if it doesn't exist) /etc/autofs.
 4. Create symlinks in that directory named after the map you want to look up:
@@ -35,11 +35,14 @@ and MacOS automounters as far as I know.
     cd /etc/autofs
     ln -s /usr/libexec/autofs-dns-lookup home
     ln -s /usr/libexec/autofs-dns-lookup pkg
+    
     cd /etc/auto.master.d
     echo '/home program:/etc/autofs/home vers=4,sec=krb5'   >home.autofs
     echo '/pkg  program:/etc/autofs/pkg  vers=4,sec=sys,ro' >pkg.autofs
 
 6. Populate a DNS zone with records in one of the three formats above.
+Please note that "filsys.hesiod.$ZONE" is handled as a special case for "home" 
+(so there is no "home.automount.hesiod.$ZONE").
 
 ### DNS record examples:
     $ORIGIN filsys.hesiod.my.zone.com.
