@@ -1,0 +1,273 @@
+#!/usr/bin/perl
+#
+# phealot - Peter's Hesiod Automount Lookup Tool
+# 
+# An executable script for lookup of Automounter data in DNS
+#
+#
+# Copyright (c) 2018 Peter Eriksson <pen@lysator.liu.se>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+#
+# Works on Linux, FreeBSD, Solaris, MacOS (and possibly others).
+#
+# Enumeration (using DNS zone transfer) only works with the FreeBSD 
+# and MacOS automounters as far as I know.
+#
+#
+# DNS TXT record formats supported:
+#
+#   Hesiod style:
+#     NFS /staff/user1 server.my.zone.com - /home/user1
+#     NFS /staff/user1 server.my.zone.com ro /home/user1
+#
+#   AMD style:
+#     type:=nfs;rhost:=server.my.zone.com;rfs:=/staff/user1
+#     type:=nfs;opts:=ro;rhost:=server.my.zone.com;rfs:=/staff/user1
+#
+#   Sun style:
+#     server.my.zone.com:/staff/user1
+#     -ro server.my.zone.com:/staff/user1
+#
+#
+# Usage:
+#
+# 1. Edit $zone_base below for your Hesiod/DNS automounter base zone.
+# 2. Put the script somewhere (/sbin, /usr/libexec?)
+# 3. Create a directory (if it doesn't exist) /etc/autofs
+# 4. Create symlinks in that directory named after the map you want to look up
+#
+#   mkdir -p /etc/autofs
+#   cd /etc/autofs
+#   ln -s /usr/libexec/autofs-dns-lookup home
+#   ln -s /usr/libexec/autofs-dns-lookup pkg
+#
+# 5. Create entries in /etc/auto.master.d like:
+#
+#   cd /etc/auto.master.d
+#   echo '/home program:/etc/autofs/home vers=4,sec=krb5'   >home.autofs
+#   echo '/pkg  program:/etc/autofs/pkg  vers=4,sec=sys,ro' >pkg.autofs
+#
+# 6. Populate a DNS zone with records in one of the three formats above
+#
+#   $ORIGIN filsys.hesiod.my.zone.com.
+#   user1   IN    TXT    "NFS /staff/user1 server.my.zone.com - /home/user"
+#
+#   $ORIGIN pkg.automount.hesiod.my.zone.com.
+#   matlab  IN   TXT     "type:=nfs;rhost:=server.my.zone.com;rfs:=/linux/matlab"
+#   labview IN   TXT     "-ro server.my.zone.com:/linux/labview"
+#
+
+use strict;
+use warnings;
+ 
+use Getopt::Std;
+use Net::DNS;
+
+my $version = '1.7';
+
+my $zone_base = 'hesiod.my.zone.com';
+my $zone_name = 'filsys';
+
+$zone_name = $1 if $0 =~ /\/etc\/autofs\/(.+)$/;
+
+my $f_no      = 0;
+my $f_verbose = 0;
+my $f_tcp     = 0;
+
+my $f_long    = 0; 
+$f_long = 1 if "$^O" eq 'freebsd';
+
+my $f_servers; # foo,bar,fubar
+
+
+my %options = ();
+getopts("hVvtD:Z:M:", \%options);
+
+if (defined $options{h}) {
+    print "Usage:\n  $0 [<options>] <name>\n";
+    print "\nOptions:\n";
+    print "  -h           Display this information\n";
+    print "  -V           Print version and exit\n";
+    print "  -v           Be verbose\n";
+    print "  -t           Force TCP usage\n";
+    print "  -D <server>  Force DNS server(s)\n";
+    print "  -Z <zone>    Zone base [${zone_base}]\n";
+    print "  -M <map>     Zone map or full name [${zone_name}]\n";
+    print "\nVersion:\n";
+    print "  ${version}\n";
+    print "\nAuthor:\n";
+    print "  Peter Eriksson ".'<pen@lysator.liu.se>'."\n";
+    exit 0;
+}
+
+
+if (defined $options{V}) {
+    print "[phealot, version ${version} - Copyright (c) 2018 Peter Eriksson]\n";
+    exit 0;
+}
+
+$f_verbose = 1 if defined $options{v};
+$f_tcp     = 1 if defined $options{t};
+
+$f_servers = $options{D} if defined $options{D};
+$zone_base   = $options{Z} if defined $options{Z};
+$zone_name   = $options{M} if defined $options{M};
+
+$zone_name = 'filsys' if $zone_name eq 'home';
+
+my $hesiod_zone = $zone_name;
+if (!($hesiod_zone =~ /\./)) {
+    $hesiod_zone .= ".automount" if $hesiod_zone ne 'filsys';
+    $hesiod_zone .= ".${zone_base}";
+}
+
+my $res = new Net::DNS::Resolver;
+
+sub print_res {
+    my $res = shift;
+
+    my $opts = $res->{opts};
+    if ($opts) {
+	$opts = "-${opts}\t";
+    } else {
+	$opts = "";
+	$opts .= "${opts}\t" if $f_verbose;
+    }
+    
+    return "${opts}$res->{serv}:$res->{path}";
+}
+
+sub parse_rr {
+    my $rr = shift;
+    my $res;
+
+    $res->{name} = $rr->name;
+    $res->{name} = $1 if $res->{name} =~ /^([^\.]+)\./;
+
+    my @data = $rr->txtdata;
+    
+    my $rdata = join(' ', @data);
+
+    if ($rdata =~ /^NFS\s+(.+)\s+(.+)\s+(.+)\s(.+)$/) {
+	$res->{type} = 'nfs';
+	$res->{opts} = $3 if $3 ne '-';
+	$res->{serv} = $2;
+	$res->{path} = $1;
+    } elsif ($rdata =~ /^[a-z]+:=([^\;])/) {
+	my @av = split(/;/, $rdata);
+	my $path;
+	my $sublink;
+
+	foreach my $a (@av) {
+	    if ($a =~ /^([a-z]+):=(.+)$/) {
+		my ($key, $val) = ($1, $2);
+		if ($key eq 'type') {
+		    $res->{type} = $val;
+		} elsif ($key eq 'opts') {
+		    $res->{opts} = $val;
+		} elsif ($key eq 'rhost') {
+		    $res->{serv} = $val;
+		} elsif ($key eq 'rfs') {
+		    $path = $val;
+		} elsif ($key eq 'sublink') {
+		    $sublink = $val;
+		}
+	    }
+	}
+	$path .= "/${sublink}" if $sublink;
+	$res->{path} = $path;
+    } elsif ($rdata =~ /^-(.+)\s+([^:]+):(\/.+)$/) {
+	$res->{type} = 'nfs';
+	$res->{serv} = $2;
+	$res->{opts} = $1;
+	$res->{path} = $3;
+    } elsif ($rdata =~ /^([^:]+):(\/.+)$/) {
+	$res->{type} = 'nfs';
+	$res->{serv} = $1;
+	$res->{path} = $2;
+    } else {
+	return;
+    }
+
+    return $res; 
+}
+
+my $dres = $res->query($hesiod_zone, "DNAME");
+if (defined $dres) {
+    foreach my $drr (grep {$_->type eq "DNAME" } $dres->answer) {
+        $hesiod_zone = $drr->dname;
+        last;
+    }
+}
+
+
+$res->nameservers(split(/,/, $f_servers)) if defined $f_servers;
+
+if ($ARGV[0]) {
+    $res->persistent_tcp(1) if $f_tcp;
+
+    foreach my $name (@ARGV) {
+	my $reply = $res->search("${name}.${hesiod_zone}", "TXT");
+	
+	next unless $reply;
+
+	foreach my $rr ($reply->answer) {    
+	    my $res = parse_rr($rr);
+	    if (!defined $res) {
+		print STDERR "$0: Error: ${name}: No such key in map\n";
+		exit 1;
+	    }
+
+	    print print_res($res)."\n";
+	}
+    }
+} else {
+    if (!defined $f_servers) {
+        # Try to locate the NS servers responsible for the zone data
+        my $ns_req = $res->query($hesiod_zone, "NS");
+        if (defined $ns_req && $ns_req->header->ancount > 0) {
+            $res->recurse(0);
+            my @nservers;
+            foreach my $nsrr (grep {$_->type eq "NS" } $ns_req->answer) {
+                my $ns = $nsrr->nsdname;
+                push(@nservers,$ns);
+            }
+            $res->nameservers(@nservers);
+        }
+    }
+
+    $res->persistent_tcp(1);
+
+    my @rrv = $res->axfr("${hesiod_zone}");
+
+    foreach my $rr (@rrv) {
+	next unless $rr->type eq 'TXT';
+	next unless $rr->class eq 'IN' || $rr->class eq 'HS';
+
+	my $res = parse_rr($rr);
+	if (!defined $res) {
+	    print STDERR "$0: Error: Unable to enumerate map\n";
+	    exit 1;
+	}
+	print "$res->{name}";
+	print "\t".print_res($res) if $f_long;
+	print "\n";
+    }
+}
+
+exit 0;
+
+
