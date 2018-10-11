@@ -51,3 +51,6 @@ Please note that "filsys.hesiod.$ZONE" is handled as a special case for "home"
     $ORIGIN pkg.automount.hesiod.my.zone.com.
     matlab  IN   TXT     "type:=nfs;rhost:=server.my.zone.com;rfs:=/linux/matlab"
     labview IN   TXT     "-ro server.my.zone.com:/linux/labview"
+    
+## More information
+For more information about the HESIOD system, see: https://en.wikipedia.org/wiki/Hesiod_(name_service)
