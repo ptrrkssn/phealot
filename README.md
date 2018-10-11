@@ -1,4 +1,5 @@
 # phealot
+
 Peter's Hesiod Automount Lookup Tool
 
 An executable script for lookup of Automounter data in DNS
@@ -7,22 +8,21 @@ Works on Linux, FreeBSD, Solaris, MacOS (and possibly others).
 Enumeration (using DNS zone transfer) only works with the FreeBSD 
 and MacOS automounters as far as I know.
 
-# DNS TXT record formats supported:
+## DNS TXT record formats supported:
 
-##  Hesiod style:
-    NFS /staff/user1 server.my.zone.com - /home/user1
-    NFS /staff/user1 server.my.zone.com ro /home/user1
+### Hesiod style:
+  NFS /staff/user1 server.my.zone.com - /home/user1
+  NFS /staff/user1 server.my.zone.com ro /home/user1
 
-##  AMD style:
-    type:=nfs;rhost:=server.my.zone.com;rfs:=/staff/user1
-    type:=nfs;opts:=ro;rhost:=server.my.zone.com;rfs:=/staff/user1
+###  AMD style:
+  type:=nfs;rhost:=server.my.zone.com;rfs:=/staff/user1
+  type:=nfs;opts:=ro;rhost:=server.my.zone.com;rfs:=/staff/user1
 
-##  Sun style:
-    server.my.zone.com:/staff/user1
-    -ro server.my.zone.com:/staff/user1
+###  Sun style:
+  server.my.zone.com:/staff/user1
+  -ro server.my.zone.com:/staff/user1
 
-
-# Usage:
+## Usage:
 
 1. Edit $zone_base below for your Hesiod/DNS automounter base zone.
 2. Put the script somewhere (/sbin, /usr/libexec?)
