@@ -27,7 +27,7 @@ and MacOS automounters as far as I know.
 ## Usage:
 
 1. Edit $zone_base in the script for your Hesiod/DNS automounter base zone.
-2. Put the script somewhere (/sbin, /usr/libexec?).3
+2. Put the script somewhere (/sbin, /usr/libexec?).
 3. Create a directory (if it doesn't exist) /etc/autofs.
 4. Create symlinks in that directory named after the map you want to look up:
 5. Create entries in /etc/auto.master.d like:
