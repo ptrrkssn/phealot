@@ -21,8 +21,6 @@ install: phealot
 install-deps:
 	@$(MAKE) install-deps-`uname -s`
 
-install-deps-Linux:
-
 install-deps-FreeBSD:
 	pkg install p5-Net-DNS
 
@@ -38,6 +36,10 @@ install-deps-Ubuntu:
 
 install-deps-CentOS:
 	yum install perl-Net-DNS
+
+# If all else fails, try CPAN
+install-deps-CPAN:
+	perl -MCPAN -e 'install Net::DNS'
 
 
 pull:
