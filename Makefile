@@ -18,7 +18,7 @@ all:
 clean:
 	-rm -f *~ \#*
 
-check: check-sun check-amd check-hes check-enum
+check: check-sun check-amd # check-hes check-enum
 
 check-sun:
 	@echo "Testing Sun-style DNS entry"
