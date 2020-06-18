@@ -52,7 +52,7 @@ check-hes:
 	fi
 
 check-list:
-	@test "`./phealot -Z $(TESTZONE) -M filsys|sort|tr '\t\n' ' ;'`" = "amd $(TESTDATA);hes $(TESTDATA);sun $(TESTDATA);"
+	@test "`./phealot -Z $(TESTZONE) -M filsys|sort|awk '{print $$1}' | tr '\n' ';'`" = "amd;hes;sun;"
 	@if test $$? = 0; then \
 	  echo "+ Map enumeration OK"; \
 	else \
