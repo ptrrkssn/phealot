@@ -1,0 +1,117 @@
+.TH "PHEALOT" "8" "18 Jun 2020" "1.8" "phealot man page"
+
+.SH "NAME"
+phealot \- Automount executable script to lookup share info via DNS
+
+.SH "SYNOPSIS"
+.B phealot
+.RI "[" "options" "]"
+.RI "[" "<key>" "]"
+
+.SH "DESCRIPTION"
+.B phealot
+is a tool that can be used by automount:ers that support an
+.I "executable map"
+in order to look up share data via DNS.
+
+.SH "OPTIONS"
+.TP
+.B \-h
+Show summary of options.
+.TP
+.B \-V
+Print build version.
+.TP
+.B \-v
+Increase verbosity level.
+.TP
+.B \-t
+Force TCP connections when talking to DNS servers
+.TP
+.B \-D
+.RI "[" servers "]"
+Force DNS servers to talk to
+.TP
+.B \-Z
+Set DNS zone base
+.TP
+.B \-M
+Set "map" name for DNS lookups. 
+.PP
+
+If the
+.B \-M
+option is not specified then the map name will be taken from the name of the
+script - so you can create symbolic links with the map names pointing to the script.
+
+.SH "USAGE"
+.IP 1.
+Edit $zone_base in the script for your Hesiod/DNS automounter base zone.
+.IP 2.
+Put the script somewhere (/sbin, /usr/libexec?).
+.IP 3.
+Create a directory (if it doesn't exist) /etc/autofs.
+.IP 4.
+Create symlinks in that directory named after the map you want to look up:
+.IP 5.
+Create entries in /etc/auto.master.d like:
+.nf
+$ mkdir -p /etc/autofs
+$ cd /etc/autofs
+$ ln -s /usr/libexec/autofs-dns-lookup home
+$ ln -s /usr/libexec/autofs-dns-lookup pkg
+
+$ cd /etc/auto.master.d
+$ echo '/home program:/etc/autofs/home vers=4,sec=krb5'   >home.autofs
+$ echo '/pkg  program:/etc/autofs/pkg  vers=4,sec=sys,ro' >pkg.autofs
+.fi
+.IP 6.
+Populate a DNS zone with records in one of the three formats below.
+Please note that
+.I "filsys.hesiod.$ZONE"
+is handled as a special case for
+.I home
+(so there is no
+.IR "home.automount.hesiod.$ZONE".
+
+.SH "DNS TXT RECORDS"
+DNS TXT record formats supported:
+.TP
+.B "Hesiod style:"
+.nf
+user1 IN TXT "NFS /staff/user1 server.example.com - /home/user1"
+user1 IN TXT "NFS /staff/user1 server.example.com ro /home/user1"
+.fi
+.TP
+.B "AMD style:"
+.nf
+user1 IN TXT "type:=nfs;rhost:=server.example.com;rfs:=/staff/user1"
+user1 IN TXT "type:=nfs;opts:=ro;rhost:=server.example.com;rfs:=/staff/user1"
+.fi
+.TP
+.B "Sun style:"
+.nf
+user1 IN TXT "server.example.com:/staff/user1"
+user1 IN TXT "-ro server.example.com:/staff/user1"
+.fi
+
+.SH "BUGS"
+
+Automount map enumeration (listing of keys) only works on FreeBSD and MacOS
+automounters. Possibly also via the AMD automounter. For enumeration to work
+the DNS server must allow zone transfers and all TXT records for the map must
+be contained in a true DNS zone.
+.PP
+The DNS system is case insensitive when looking up records. However this tool
+tries to check the returned data (for formats that allow this like
+.IR Hesiod ")"
+with the key and skips the returned record it if there is a mismatch.
+
+.SH "SEE ALSO"
+.BR automount (8),
+.br
+.BR "https://en.wikipedia.org/wiki/Hesiod_(name_service)" ,
+.BR "https://github.com/ptrrkssn/phealot"
+
+.SH "AUTHOR"
+pwol was written by Peter Eriksson <pen@lysator.liu.se>.

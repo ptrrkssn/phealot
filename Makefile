@@ -1,9 +1,11 @@
 # Makefile for phealot
 
 DESTDIR =
+PREFIX = 	/usr
 
-prefix =	/usr
+prefix =	$(PREFIX)
 libexecdir =	${prefix}/libexec
+man8dir = 	${prefix}/share/man/man8
 
 INSTALL =	/usr/bin/install -c
 
@@ -58,8 +60,15 @@ check-list:
 	fi
 
 
-install: phealot
-	$(INSTALL) phealot "$(DESTDIR){libexecdir}"
+install: install-bin install-man
+
+install-bin: phealot
+	$(INSTALL) -d "$(DESTDIR)${libexecdir}"
+	$(INSTALL) phealot "$(DESTDIR)${libexecdir}"
+
+install-man: phealot.8
+	$(INSTALL) -d "$(DESTDIR)${man8dir}"
+	$(INSTALL) phealot.8 "$(DESTDIR)${man8dir}"
 
 install-deps:
 	@$(MAKE) install-deps-`uname -s`

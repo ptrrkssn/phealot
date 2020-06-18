@@ -12,16 +12,16 @@ and MacOS automounters as far as I know.
 ## DNS TXT record formats supported:
 
 ### Hesiod style:
-    NFS /staff/user1 server.my.zone.com - /home/user1
-    NFS /staff/user1 server.my.zone.com ro /home/user1
+    NFS /staff/user1 server.example.com - /home/user1
+    NFS /staff/user1 server.example.com ro /home/user1
 
 ### AMD style:
-    type:=nfs;rhost:=server.my.zone.com;rfs:=/staff/user1
-    type:=nfs;opts:=ro;rhost:=server.my.zone.com;rfs:=/staff/user1
+    type:=nfs;rhost:=server.example.com;rfs:=/staff/user1
+    type:=nfs;opts:=ro;rhost:=server.example.com;rfs:=/staff/user1
 
 ### Sun style:
-    server.my.zone.com:/staff/user1
-    -ro server.my.zone.com:/staff/user1
+    server.example.com:/staff/user1
+    -ro server.example.com:/staff/user1
 
 
 ## Usage:
@@ -51,12 +51,12 @@ Please note that "filsys.hesiod.$ZONE" is handled as a special case for "home"
 
 ### DNS record examples:
 
-    $ORIGIN filsys.hesiod.my.zone.com.
-    user1   IN    TXT    "NFS /staff/user1 server.my.zone.com - /home/user1"
+    $ORIGIN filsys.hesiod.example.com.
+    user1   IN    TXT    "NFS /staff/user1 server.example.com - /home/user1"
     
-    $ORIGIN pkg.automount.hesiod.my.zone.com.
-    matlab  IN   TXT     "type:=nfs;rhost:=server.my.zone.com;rfs:=/linux/matlab"
-    labview IN   TXT     "-ro server.my.zone.com:/linux/labview"
+    $ORIGIN pkg.automount.hesiod.example.com.
+    matlab  IN   TXT     "type:=nfs;rhost:=server.example.com;rfs:=/linux/matlab"
+    labview IN   TXT     "-ro server.example.com:/linux/labview"
     
 
 ## More information
