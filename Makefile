@@ -86,7 +86,8 @@ install-deps:
 install-deps-FreeBSD:
 	pkg install p5-Net-DNS
 
-install-deps-Darwin: install-deps-CPAN
+install-deps-Darwin:
+	@echo "You might try 'install-deps-CPAN'"
 
 install-deps-Linux:
 	@if test -f /etc/centos-release; then \
@@ -103,7 +104,7 @@ install-deps-CentOS:
 
 # If all else fails, try CPAN
 install-deps-CPAN:
-	yes | perl -MCPAN -e 'install Net::DNS'
+	perl -MCPAN -e 'install Net::DNS'
 
 
 pull:
