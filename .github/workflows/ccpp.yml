@@ -10,8 +10,8 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
     - uses: actions/checkout@v2
-#    - name: install dependencies
-#      run: test -f /usr/include/readline/readline.h || sudo apt install libreadline-dev
+    - name: install dependencies
+      run: test -f /usr/share/perl5/Net/DNS.pm || sudo apt-get install libnet-dns-perl
 #    - name: configure
 #      run: ./configure
 #    - name: make
