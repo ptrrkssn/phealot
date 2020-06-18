@@ -2,7 +2,8 @@
 #
 # phealot - Peter's Hesiod Automount Lookup Tool
 # 
-# An executable script for lookup of Automounter data in DNS
+# An executable script for lookup of Automounter data in DNS to
+# be used as an "executable" map for autofs/automount
 #
 #
 # BSD 3-Clause License
@@ -39,7 +40,8 @@
 # Works on Linux, FreeBSD, Solaris, MacOS (and possibly others).
 #
 # Enumeration (using DNS zone transfer) only works with the FreeBSD 
-# and MacOS automounters as far as I know.
+# and MacOS automounters as far as I know. It might work with the
+# AMD automounter.
 #
 #
 # DNS TXT record formats supported:
@@ -91,9 +93,9 @@ use warnings;
 use Getopt::Std;
 use Net::DNS;
 
-my $version = '1.7.1';
+my $version = '1.8';
 
-my $zone_base = 'hesiod.my.zone.com';
+my $zone_base = 'hesiod.my.zone';
 my $zone_name = 'filsys';
 
 $zone_name = $1 if $0 =~ /\/etc\/autofs\/(.+)$/;
@@ -101,7 +103,6 @@ $zone_name = $1 if $0 =~ /\/etc\/autofs\/(.+)$/;
 my $f_no      = 0;
 my $f_verbose = 0;
 my $f_tcp     = 0;
-
 my $f_long    = 0; 
 $f_long = 1 if "$^O" eq 'freebsd';
 
@@ -138,9 +139,10 @@ $f_verbose = 1 if defined $options{v};
 $f_tcp     = 1 if defined $options{t};
 
 $f_servers = $options{D} if defined $options{D};
-$zone_base   = $options{Z} if defined $options{Z};
-$zone_name   = $options{M} if defined $options{M};
+$zone_base = $options{Z} if defined $options{Z};
+$zone_name = $options{M} if defined $options{M};
 
+# Special case for 'home' to be compatible with Hesiod
 $zone_name = 'filsys' if $zone_name eq 'home';
 
 my $hesiod_zone = $zone_name;
@@ -251,17 +253,35 @@ if ($ARGV[0]) {
     }
 } else {
     if (!defined $f_servers) {
+	my @nservers;
+	my $soa_ns;
+
+	# Locate the SOA master server for this zone
+        my $soa_req = $res->query($hesiod_zone, "SOA");
+        if (defined $soa_req && $soa_req->header->ancount > 0) {
+            foreach my $nsrr (grep {$_->type eq "SOA" } $soa_req->answer) {
+                $soa_ns = $nsrr->mname;
+		last;
+            }
+	}
+	
         # Try to locate the NS servers responsible for the zone data
         my $ns_req = $res->query($hesiod_zone, "NS");
         if (defined $ns_req && $ns_req->header->ancount > 0) {
             $res->recurse(0);
-            my @nservers;
             foreach my $nsrr (grep {$_->type eq "NS" } $ns_req->answer) {
                 my $ns = $nsrr->nsdname;
-                push(@nservers,$ns);
+		
+		# If the SOA master NS is include in the list - put it first
+		if (defined $soa_ns && $ns eq $soa_ns) {
+		    unshift @nservers, $ns;
+		} else {
+		    push @nservers, $ns;
+		}
             }
-            $res->nameservers(@nservers);
         }
+	
+	$res->nameservers(@nservers) if 0 < @nservers;
     }
 
     $res->persistent_tcp(1);

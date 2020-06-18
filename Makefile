@@ -7,9 +7,9 @@ libexecdir =	${prefix}/libexec
 
 INSTALL =	/usr/bin/install -c
 
+# A DNS zone containing test data for this tool
 TESTZONE =	hesiod.test.lysator.liu.se
 TESTDATA =	localhost:/export/home/test
-
 
 all:
 	@echo "Valid targets: 'install', 'install-deps', 'clean', 'pull' or 'push'"
@@ -18,23 +18,44 @@ all:
 clean:
 	-rm -f *~ \#*
 
-check: check-sun check-amd # check-hes check-enum
+
+check: check-start check-sun check-amd check-hes check-list
+	@echo "All checks passed."
+
+check-start:
+	@echo "Running checks:"
 
 check-sun:
-	@echo "Testing Sun-style DNS entry"
-	test "`./phealot -Z \"$(TESTZONE)\" -M filsys sun`" = "$(TESTDATA)"
+	@test "`./phealot -Z $(TESTZONE) -M filsys sun`" = "$(TESTDATA)"
+	@if test $$? = 0; then \
+	  echo "+ Sun-style map lookup OK"; \
+	else \
+	  echo "- Sun-style map lookup Failed"; \
+	fi
 
 check-amd:
-	@echo "Testing AMD-style DNS entry"
-	test "`./phealot -Z \"$(TESTZONE)\" -M filsys amd`" = "$(TESTDATA)"
+	@test "`./phealot -Z $(TESTZONE) -M filsys amd`" = "$(TESTDATA)"
+	@if test $$? = 0; then \
+	  echo "+ AMD-style map lookup OK"; \
+	else \
+	  echo "- AMD-style map lookup Failed"; \
+	fi
 
 check-hes:
-	@echo "Testing Hesiod-style DNS entry"
-	test "`./phealot -Z \"$(TESTZONE)\" -M filsys hes`" = "$(TESTDATA)"
+	@test "`./phealot -Z $(TESTZONE) -M filsys hes`" = "$(TESTDATA)"
+	@if test $$? = 0; then \
+	  echo "+ Hesiod-style map lookup OK"; \
+	else \
+	  echo "- Hesiod-style map lookup Failed"; \
+	fi
 
-check-enum:
-	@echo "Testing enumeration of DNS entries"
-	./phealot -Z \"$(TESTZONE)\" -M filsys
+check-list:
+	@test "`./phealot -Z $(TESTZONE) -M filsys|sort|tr '\t\n' ' ;'`" = "amd $(TESTDATA);hes $(TESTDATA);sun $(TESTDATA);"
+	@if test $$? = 0; then \
+	  echo "+ Map enumeration OK"; \
+	else \
+	  echo "- Map enumeration Failed"; \
+	fi
 
 
 install: phealot
