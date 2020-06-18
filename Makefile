@@ -103,7 +103,7 @@ install-deps-CentOS:
 
 # If all else fails, try CPAN
 install-deps-CPAN:
-	perl -MCPAN -e 'install Net::DNS'
+	yes | perl -MCPAN -e 'install Net::DNS'
 
 
 pull:
