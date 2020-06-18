@@ -1,5 +1,8 @@
 # Makefile for phealot
 
+PACKAGE = 	phealot
+VERSION =	1.8
+
 DESTDIR =
 PREFIX = 	/usr
 
@@ -8,17 +11,24 @@ libexecdir =	${prefix}/libexec
 man8dir = 	${prefix}/share/man/man8
 
 INSTALL =	/usr/bin/install -c
+TAR =		tar
 
 # A DNS zone containing test data for this tool
 TESTZONE =	hesiod.test.lysator.liu.se
 TESTDATA =	localhost:/export/home/test
 
+DISTCHECKDIR =	/tmp/distcheck-$(PACKAGE)-$(VERSION)
+DISTDIR =	/tmp/dist-$(PACKAGE)-$(VERSION)
+
+
 all:
 	@echo "Valid targets: 'install', 'install-deps', 'clean', 'pull' or 'push'"
-	@exit 1
+
+
+distclean: clean
 
 clean:
-	-rm -f *~ \#*
+	-rm -f *~ \#* *.tar.gz
 
 
 check: check-start check-sun check-amd check-hes check-list
@@ -76,6 +86,8 @@ install-deps:
 install-deps-FreeBSD:
 	pkg install p5-Net-DNS
 
+install-deps-Darwin:
+
 install-deps-Linux:
 	@if test -f /etc/centos-release; then \
 	  $(MAKE) install-deps-CentOS; \
@@ -99,3 +111,18 @@ pull:
 
 push:	clean
 	git add -A && git commit -a && git push
+
+
+# Dist targets
+
+dist:	$(PACKAGE)-$(VERSION).tar.gz
+
+$(PACKAGE)-$(VERSION).tar.gz: Makefile
+	rm -fr "$(DISTDIR)" && mkdir -p "$(DISTDIR)/$(PACKAGE)-$(VERSION)" && \
+	  cp -r * "$(DISTDIR)/$(PACKAGE)-$(VERSION)" && \
+	  (cd "$(DISTDIR)/$(PACKAGE)-$(VERSION)" && $(MAKE) distclean)
+	(cd "$(DISTDIR)" && $(TAR) cvf - "$(PACKAGE)-$(VERSION)") | gzip >"$(PACKAGE)-$(VERSION)".tar.gz
+	echo rm -fr "$(DISTDIR)"
+	@echo ""
+	@echo "*** $(PACKAGE)-$(VERSION).tar.gz created"
+

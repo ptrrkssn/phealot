@@ -11,7 +11,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install dependencies
-      run: test -f /usr/share/perl5/Net/DNS.pm || sudo apt-get install libnet-dns-perl
+      run: make install-deps
 #    - name: configure
 #      run: ./configure
 #    - name: make
